@@ -1,0 +1,2 @@
+claim_id,diag_cd,origl_prod_svc_qlfr_cd,pat_age_mth_nbr,pat_age_yr_nbr,pat_gender_cd,product_id,overlap_ratio,patient_num,nct_id,enrollment,start_date,complte_date,provider_id
+NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL
