@@ -158,13 +158,14 @@ for each_epoch in tqdm(range(epoch)):
   
     optimizer.zero_grad()
 
-    loss, pred, att, response, query, memory = model.get_loss(batch_criteria, batch_criteria_mask, batch_ehr, batch_ehr_mask, batch_demo, batch_label, batch_key, query_network, memory_network, criteria_network, beam, False)
+    loss, sloss, pred, att, response, query, memory = model.get_loss(batch_criteria, batch_criteria_mask, batch_ehr, batch_ehr_mask, batch_demo, batch_label, batch_key, query_network, memory_network, criteria_network, beam, False, True)
     
-    loss.backward()
+    final_loss = loss + sloss
+    final_loss.backward()
     optimizer.step()
     
     if iteration % (200*batch_size) == 0:
-      print("Epoch %d, Iter %d: Loss:%.4f" % (each_epoch, iteration, loss))
+      print("Epoch %d, Iter %d: Loss:%.4f Similarity Loss:%.4f" % (each_epoch, iteration, loss, sloss))
     if iteration % (800*batch_size) == 0:
       if iteration == 0:
         continue
@@ -174,6 +175,7 @@ for each_epoch in tqdm(range(epoch)):
       query_network.eval()
       with torch.no_grad():
         val_l = []
+        val_sl = []
         for val_iter in range(0, len(valid_label_dataset), batch_size):
           batch_ehr, batch_ehr_mask, batch_key, batch_demo, batch_criteria, batch_criteria_mask, batch_label = get_batch(val_iter, batch_size, 'valid')
 
@@ -186,12 +188,14 @@ for each_epoch in tqdm(range(epoch)):
         
           optimizer.zero_grad()
 
-          val_loss, val_pred, val_att, val_response, val_query, val_memory = model.get_loss(batch_criteria, batch_criteria_mask, batch_ehr, batch_ehr_mask, batch_demo, batch_label, batch_key, query_network, memory_network, criteria_network, beam, False)
+          val_loss, val_sloss, val_pred, val_att, val_response, val_query, val_memory = model.get_loss(batch_criteria, batch_criteria_mask, batch_ehr, batch_ehr_mask, batch_demo, batch_label, batch_key, query_network, memory_network, criteria_network, beam, False, True)
     
           val_l.append((val_loss).detach().cpu().numpy())
+          val_sl.append((val_sloss).detach().cpu().numpy())
 
         cur_val_loss = np.mean(val_l)
-        print("Epoch %d validation: Loss:%.4f" % (each_epoch, cur_val_loss))
+        cur_val_sloss = np.mean(val_sl)
+        print("Epoch %d Validation: Loss:%.4f Validation Loss:%.4f" % (each_epoch, cur_val_loss, cur_val_sloss))
         if cur_val_loss < global_loss:
           global_loss = cur_val_loss
           state = {
@@ -201,5 +205,5 @@ for each_epoch in tqdm(range(epoch)):
               'optimizer': optimizer.state_dict(),
               'iteration': iteration
           }
-          torch.save(state, './save/model')
+          torch.save(state, './save/model_similarity')
           print('\n------------ Save best model ------------\n')
